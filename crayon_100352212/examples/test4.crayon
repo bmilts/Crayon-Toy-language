@@ -1,0 +1,15 @@
+var RED 5 BLUE
+var1 RED 4 BLUE
+var2 RED 3 BLUE
+
+x RED 2 BLUE
+
+PURPLE x = 2 GREEN 
+  y RED 2 
+YELLOW 
+  y RED 5
+TAN BLUE
+
+VIOLET x < 10 ORANGE 
+  x RED x + 1
+TAN

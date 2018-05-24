@@ -1,0 +1,24 @@
+
+string BLACK WelcomeToCrayon BLUE
+var RED 5 BLUE
+var1 RED 4 BLUE
+var2 RED 3 BLUE
+
+x RED 3 BLUE
+
+PURPLE x = 2 GREEN 
+  y RED 2 
+YELLOW 
+  y RED 5
+TAN BLUE
+
+VIOLET x < 11 ORANGE 
+  x RED x + 1
+TAN BLUE
+
+n RED 5 BLUE
+p RED 1 BLUE
+VIOLET n > 0 ORANGE
+  p RED p * n BLUE
+  n RED n - 1
+TAN
