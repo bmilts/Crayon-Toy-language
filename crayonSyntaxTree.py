@@ -1,56 +1,78 @@
-# http://jayconrod.com/posts/39/a-simple-interpreter-from-scratch-in-python-part-3
+# DESCRIPTION
+# TODO
 
-from equality import *
+class Equality:
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and \
+               self.__dict__ == other.__dict__
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+# Statements used for all statements
 class Statement(Equality):
     pass
 
-class Aexp(Equality):
+# Arithmatic expressions used for number computations
+class Expressions(Equality):
     pass
 
-class Bexp(Equality):
+# Boolean expressions used for conditionals
+class BoolExpressions(Equality):
     pass
 
 class AssignStatement(Statement):
-    def __init__(self, name, aexp):
+    def __init__(self, name, expression):
         self.name = name
-        self.aexp = aexp
+        self.expression = expression
 
     def __repr__(self):
-        return 'AssignStatement(%s, %s)' % (self.name, self.aexp)
+        return 'AssignStatement(%s, %s)' % (self.name, self.expression)
 
     def eval(self, env):
-        value = self.aexp.eval(env)
+        value = self.expression.eval(env)
+        env[self.name] = value
+        
+class AssignString(Statement):
+    def __init__(self, name, strin):
+        self.name = name
+        self.strin = strin
+
+    def __repr__(self):
+        return 'AssignString(%s, %s)' % (self.name, self.strin)
+        
+    def eval(self, env):
+        value = self.strin
         env[self.name] = value
 
-class CompoundStatement(Statement):
+class MultipleStatement(Statement):
     def __init__(self, first, second):
         self.first = first
         self.second = second
 
     def __repr__(self):
-        return 'CompoundStatement(%s, %s)' % (self.first, self.second)
+        return 'MultipleStatement(%s, %s)' % (self.first, self.second)
 
     def eval(self, env):
         self.first.eval(env)
         self.second.eval(env)
 
 class IfStatement(Statement):
-    def __init__(self, condition, true_stmt, false_stmt):
+    def __init__(self, condition, trueStatement, falseStatement):
         self.condition = condition
-        self.true_stmt = true_stmt
-        self.false_stmt = false_stmt
+        self.trueStatement = trueStatement
+        self.falseStatement = falseStatement
 
     def __repr__(self):
-        return 'IfStatement(%s, %s, %s)' % (self.condition, self.true_stmt, self.false_stmt)
+        return 'IfStatement(%s, %s, %s)' % (self.condition, self.trueStatement, self.falseStatement)
 
     def eval(self, env):
-        condition_value = self.condition.eval(env)
-        if condition_value:
-            self.true_stmt.eval(env)
+        conditionValue = self.condition.eval(env)
+        if conditionValue:
+            self.trueStatement.eval(env)
         else:
-            if self.false_stmt:
-                self.false_stmt.eval(env)
+            if self.falseStatement:
+                self.falseStatement.eval(env)
 
 class WhileStatement(Statement):
     def __init__(self, condition, body):
@@ -61,12 +83,31 @@ class WhileStatement(Statement):
         return 'WhileStatement(%s, %s)' % (self.condition, self.body)
 
     def eval(self, env):
-        condition_value = self.condition.eval(env)
-        while condition_value:
+        conditionValue = self.condition.eval(env)
+        while conditionValue:
             self.body.eval(env)
-            condition_value = self.condition.eval(env)
+            conditionValue = self.condition.eval(env)
+ 
+class ForLoop(Statement):
+    def __init__(self, name, expression, condition, body):
+        self.name = name
+        self.expression = expression
+        self.condition = condition
+        self.body = body
 
-class IntAexp(Aexp):
+    def __repr__(self):
+        return 'ForLoop(%s, %s, %s, %s)' % (self.name, self.expression, self.condition, self.body)
+
+    def eval(self, env):
+        value = self.expression.eval(env)
+        env[self.name] = value
+        conditionValue = self.condition.eval(env)
+        while conditionValue:
+            self.body.eval(env)
+            conditionValue = self.condition.eval(env)
+            
+
+class IntAexp(Expressions):
     def __init__(self, i):
         self.i = i
 
@@ -75,8 +116,18 @@ class IntAexp(Aexp):
 
     def eval(self, env):
         return self.i
+        
+class FloatAexp(Expressions):
+    def __init__(self, f):
+        self.f = f
 
-class VarAexp(Aexp):
+    def __repr__(self):
+        return 'FloatAexp(%d)' % self.f
+
+    def eval(self, env):
+        return self.f
+
+class VarAexp(Expressions):
     def __init__(self, name):
         self.name = name
 
@@ -88,91 +139,132 @@ class VarAexp(Aexp):
             return env[self.name]
         else:
             return 0
+            
+class StringExp(Expressions):
+    def __init__(self, strin):
+        self.strin = strin
 
-class BinopAexp(Aexp):
-    def __init__(self, op, left, right):
-        self.op = op
+    def __repr__(self):
+        return 'StringExp(%s)' % self.strin
+
+    def eval(self, env):
+        if self.strin in env:
+            return env[self.strin]
+        else:
+            return 0
+            
+class PrintExp(Expressions):
+    def __init__(self, prnt):
+        self.prnt = prnt
+
+    def __repr__(self):
+        return 'PrintExp(%s)' % self.prnt
+
+    def eval(self, env):
+        if self.prnt in env:
+            return env[self.prnt]
+        else:
+            return 0
+
+class BinopAexp(Expressions):
+    def __init__(self, operation, left, right):
+        self.operation = operation
         self.left = left
         self.right = right
 
     def __repr__(self):
-        return 'BinopAexp(%s, %s, %s)' % (self.op, self.left, self.right)
+        return 'BinopAexp(%s, %s, %s)' % (self.operation, self.left, self.right)
 
     def eval(self, env):
-        left_value = self.left.eval(env)
-        right_value = self.right.eval(env)
-        if self.op == '+':
-            value = left_value + right_value
-        elif self.op == '-':
-            value = left_value - right_value
-        elif self.op == '*':
-            value = left_value * right_value
-        elif self.op == '/':
-            value = left_value / right_value
+        leftValue = self.left.eval(env)
+        rightValue = self.right.eval(env)
+        if self.operation == '+':
+            value = leftValue + rightValue
+        elif self.operation == '-':
+            value = leftValue - rightValue
+        elif self.operation == '*':
+            value = leftValue * rightValue
+        elif self.operation == '/':
+            value = leftValue / rightValue
         else:
-            raise RuntimeError('unknown operator: ' + self.op)
+            raise RuntimeError('unknown operator: ' + self.operation)
         return value
 
-class RelopBexp(Bexp):
-    def __init__(self, op, left, right):
-        self.op = op
+class RelopBexp(BoolExpressions):
+    def __init__(self, operation, left, right):
+        self.operation = operation
         self.left = left
         self.right = right
 
     def __repr__(self):
-        return 'RelopBexp(%s, %s, %s)' % (self.op, self.left, self.right)
+        return 'RelopBexp(%s, %s, %s)' % (self.operation, self.left, self.right)
 
     def eval(self, env):
-        left_value = self.left.eval(env)
-        right_value = self.right.eval(env)
-        if self.op == '<':
-            value = left_value < right_value
-        elif self.op == '<=':
-            value = left_value <= right_value
-        elif self.op == '>':
-            value = left_value > right_value
-        elif self.op == '>=':
-            value = left_value >= right_value
-        elif self.op == '=':
-            value = left_value == right_value
-        elif self.op == '!=':
-            value = left_value != right_value
+        leftValue = self.left.eval(env)
+        rightValue = self.right.eval(env)
+        if self.operation == '<':
+            value = leftValue < rightValue
+        elif self.operation == '<=':
+            value = leftValue <= rightValue
+        elif self.operation == '>':
+            value = leftValue > rightValue
+        elif self.operation == '>=':
+            value = leftValue >= rightValue
+        elif self.operation == '=':
+            value = leftValue == rightValue
+        elif self.operation == '!=':
+            value = leftValue != rightValue
         else:
-            raise RuntimeError('unknown operator: ' + self.op)
+            raise RuntimeError('unknown operator: ' + self.operation)
         return value
 
-class AndBexp(Bexp):
+class AndBoolExpression(BoolExpressions):
     def __init__(self, left, right):
         self.left = left
         self.right = right
 
     def __repr__(self):
-        return 'AndBexp(%s, %s)' % (self.left, self.right)
+        return 'AndBoolExpression(%s, %s)' % (self.left, self.right)
 
     def eval(self, env):
-        left_value = self.left.eval(env)
-        right_value = self.right.eval(env)
-        return left_value and right_value
+        leftValue = self.left.eval(env)
+        rightValue = self.right.eval(env)
+        return leftValue and rightValue
 
-class OrBexp(Bexp):
+class OrBoolExpression(BoolExpressions):
     def __init__(self, left, right):
         self.left = left
         self.right = right
 
     def __repr__(self):
-        return 'OrBexp(%s, %s)' % (self.left, self.right)
+        return 'OrBoolExpression(%s, %s)' % (self.left, self.right)
 
     def eval(self, env):
-        left_value = self.left.eval(env)
-        right_value = self.right.eval(env)
-        return left_value or right_value
+        leftValue = self.left.eval(env)
+        rightValue = self.right.eval(env)
+        return leftValue or rightValue
 
-class NotBexp(Bexp):
+'''        
+class PrintExpression(PrintExpressions):
+    def __init__(self, left, right):
+        self.left = left
+        self.right = right
+
+    def __repr__(self):
+        return 'PrintExpression(%s, %s)' % (self.left, self.right)
+
+    def eval(self, env):
+        leftValue = self.left.eval(env)
+        rightValue = self.right.eval(env)
+        return leftValue or rightValue
+'''
+
+class NotBoolExpression(BoolExpressions):
     def __init__(self, exp):
         self.exp = exp
 
     def __repr__(self):
-        return 'NotBexp(%s)' % self.exp
+        return 'NotBoolExpression(%s)' % self.exp
 
     def eval(self, env):
         value = self.exp.eval(env)

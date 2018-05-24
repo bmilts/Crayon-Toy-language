@@ -10,6 +10,7 @@ class ParseOutput:
         # Index Position
         self.pos = pos
     
+    # REPR method to print for debugging
     def __repr__(self):
         return 'Output(%s, %d)' % (self.value, self.pos)
 
@@ -62,6 +63,17 @@ class Marker(Parser):
         else:
             return None
             
+# Match any token with a specific marker ie: PRINT
+class PrintMarker(Parser):
+    def __init__(self, printMarker):
+        self.printMarker = printMarker
+
+    def __call__(self, tokens, pos):
+        if pos < len(tokens) and tokens[pos][1] is self.printMarker:
+            return ParseOutput(tokens[pos][0], pos + 1)
+        else:
+            return None
+            
 # Link left and right parser input if both successfully produced a Parsed output, the new value will be a linked value
 class Link(Parser):
     def __init__(self, left, right):
@@ -92,15 +104,15 @@ class Alternative(Parser):
             rightParseOutput = self.right(tokens, pos)
             return rightParseOutput
             
-# Statement parser is for optional statement clauses example else clause.
-class Statement(Parser):
+# Optional parser is for optional statement clauses example else clause.
+class Optional(Parser):
     def __init__(self, parser):
         self.parser = parser
 
     def __call__(self, tokens, pos):
-        ParseOutput = self.parser(tokens, pos)
-        if ParseOutput:
-            return ParseOutput
+        parseOutput = self.parser(tokens, pos)
+        if parseOutput:
+            return parseOutput
         else:
             return ParseOutput(None, pos)
 
@@ -110,13 +122,13 @@ class List(Parser):
         self.parser = parser
 
     def __call__(self, tokens, pos):
-        ParseOutputs = []
-        ParseOutput = self.parser(tokens, pos)
-        while ParseOutput:
-            ParseOutputs.append(ParseOutput.value)
-            pos = ParseOutput.pos
-            ParseOutput = self.parser(tokens, pos)
-        return ParseOutput(ParseOutputs, pos)
+        parseOutputs = []
+        parseOutput = self.parser(tokens, pos)
+        while parseOutput:
+            parseOutputs.append(parseOutput.value)
+            pos = parseOutput.pos
+            parseOutput = self.parser(tokens, pos)
+        return ParseOutput(parseOutputs, pos)
 
 # Allows manipulation of output values, used to build abstract syntax tree
 class Process(Parser):
@@ -125,10 +137,10 @@ class Process(Parser):
         self.function = function
 
     def __call__(self, tokens, pos):
-        ParseOutput = self.parser(tokens, pos)
-        if ParseOutput:
-            ParseOutput.value = self.function(ParseOutput.value)
-            return ParseOutput
+        parseOutput = self.parser(tokens, pos)
+        if parseOutput:
+            parseOutput.value = self.function(parseOutput.value)
+            return parseOutput
 
 # Efficiency parser only computes values to be used depending on relevant markers
 class Efficiency(Parser):
@@ -141,15 +153,15 @@ class Efficiency(Parser):
             self.parser = self.parserFunc()
         return self.parser(tokens, pos)
 
-# Garbage bypass parser prevents parsing garbage by checking matches against length
-class GarbageBypass(Parser):
+# High Level parser prevents parsing garbage by checking matches against length
+class HighLevelParse(Parser):
     def __init__(self, parser):
         self.parser = parser
 
     def __call__(self, tokens, pos):
-        ParseOutput = self.parser(tokens, pos)
-        if ParseOutput and ParseOutput.pos == len(tokens):
-            return ParseOutput
+        parseOutput = self.parser(tokens, pos)
+        if parseOutput and parseOutput.pos == len(tokens):
+            return parseOutput
         else:
             return None
 
@@ -164,20 +176,20 @@ class ExprMatch(Parser):
         self.separator = separator
 
     def __call__(self, tokens, pos):
-        ParseOutput = self.parser(tokens, pos)
+        parseOutput = self.parser(tokens, pos)
 
         # Combine matched expressions
         def processNext(parsed):
             (sepfunc, right) = parsed
-            return sepfunc(ParseOutput.value, right)
+            return sepfunc(parseOutput.value, right)
         nextParser = self.separator + self.parser ^ processNext
 
-        nextParseOutput = ParseOutput
+        nextParseOutput = parseOutput
         while nextParseOutput:
-            nextParseOutput = nextParser(tokens, ParseOutput.pos)
+            nextParseOutput = nextParser(tokens, parseOutput.pos)
             if nextParseOutput:
-                ParseOutput = nextParseOutput
-        return ParseOutput            
+                parseOutput = nextParseOutput
+        return parseOutput            
 
 
 

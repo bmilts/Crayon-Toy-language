@@ -1,59 +1,29 @@
-import crayonLexerFunction
+import sys
+import re
 
-# http://jayconrod.com/posts/37/a-simple-interpreter-from-scratch-in-python-part-1
+# Takes chars and expression functions and compares them to python regular expressions
+def lex(chars, expressionToks):
+    
+    pos = 0
+    tokens = []
 
-# Language markers
-KEYWORD = 'KEYWORD'
-INT      = 'INT'
-STRING   = 'STRING'
-ID       = 'ID'
-
-# Expression tokens including operators, keywords, strings and ints
-expressionToks = [
-    
-    (r'[ \n\t]+',              None),
-    (r'#[^\n]*',               None),
-    (r'\:=',                   KEYWORD),
-    
-    (r'BLACK',                 STRING),
-    
-    (r'\(',                    KEYWORD),
-    (r'\)',                    KEYWORD),
-    (r';',                     KEYWORD),
-    (r'\+',                    KEYWORD),
-    (r'-',                     KEYWORD),
-    (r'\*',                    KEYWORD),
-    (r'/',                     KEYWORD),
-    (r'<=',                    KEYWORD),
-    (r'<',                     KEYWORD),
-    (r'>=',                    KEYWORD),
-    (r'>',                     KEYWORD),
-    (r'=',                     KEYWORD),
-    (r'!=',                    KEYWORD),
-    
-    # Testing keywords
-    
-    (r'and',                   KEYWORD),
-    (r'or',                    KEYWORD),
-    (r'not',                   KEYWORD),
-    (r'if',                    KEYWORD),
-    (r'then',                  KEYWORD),
-    (r'else',                  KEYWORD),
-    (r'while',                 KEYWORD),
-    (r'do',                    KEYWORD),
-    (r'end',                   KEYWORD),
-    
-    (r'RED',                   KEYWORD),
-    (r'BLUE',                  KEYWORD),
-    (r'PURPLE',                KEYWORD),
-    (r'GREEN',                 KEYWORD),
-    (r'YELLOW',                KEYWORD),
-
-    
-    (r'[0-9]+',                INT),
-    (r'[A-Za-z][A-Za-z0-9_]*', ID),
-    
-]
-
-def crayonLex(chars):
-    return crayonLexerFunction.lex(chars, expressionToks)
+    while pos < len(chars):
+        match = None
+        for expressionTok in expressionToks:
+            pattern, marker = expressionTok
+            regex = re.compile(pattern)
+            match = regex.match(chars, pos)
+            if match:
+                text = match.group(0)
+                if marker:
+                    token = (text, marker)
+                    tokens.append(token)
+                break
+            
+        # Error checking 
+        if not match:
+            sys.stderr.write('Unaccepted crayon char: %s\\n' % chars[pos])
+            sys.exit(1)
+        else:
+            pos = match.end(0)
+    return tokens

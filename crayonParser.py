@@ -1,142 +1,184 @@
-from imp_lexer import *
-# crayonLexer.py
-
-from combinators import *
-# crayonParserSubClasses.py
-
-from imp_ast import *
-# crayonSyntaxTree.py
+from crayonKeywords import *
+from crayonParserSubClasses import *
+from crayonSyntaxTree import *
 
 # Basic parsers
-def keyword(kw):
-    return Reserved(kw, RESERVED)
 
-num = Tag(INT) ^ (lambda i: int(i))
-id = Tag(ID)
+# Keyword parser 
+def keyword(kw):
+    return Keyword(kw, KEYWORD)
+    
+# Convert values returned by num, id into expressions          
+def expressionValue():
+    return (num ^ (lambda i: IntAexp(i))) | \
+           (id  ^ (lambda v: VarAexp(v))) | \
+           (str  ^ (lambda s: StringExp(s))) | \
+           (numFloat  ^ (lambda f: FloatExp(f))) | \
+           (printVal  ^ (lambda prnt: PrintExp(prnt)))
+
+# Convert number token into an integer value
+num = Marker(INT) ^ (lambda i: int(i))
+numFloat = Marker(FLOAT) ^ (lambda f: float(f))
+
+# Convert ID token into python id
+id = Marker(ID)
+str = Marker(ID)
+printVal = Marker(BROWN)
 
 # Top level parser
-def imp_parse(tokens):
+def crayonParse(tokens):
     ast = parser()(tokens, 0)
     return ast
 
 def parser():
-    return Phrase(stmt_list())    
+    return HighLevelParse(statementList())    
 
-# Statements
-def stmt_list():
-    separator = keyword(';') ^ (lambda x: lambda l, r: CompoundStatement(l, r))
-    return Exp(stmt(), separator)
+# Multiple Statement seperator
+def statementList():
+    separator = keyword('BLUE') ^ (lambda x: lambda l, r: MultipleStatement(l, r))
+    return ExprMatch(statement(), separator)
 
-def stmt():
-    return assign_stmt() | \
-           if_stmt()     | \
-           while_stmt()
-
-def assign_stmt():
+# 
+def statement():
+    return statementAssign() | \
+           statementIf()     | \
+           statementWhile()  | \
+           stringAssign()    | \
+           statementFor()
+           
+# NOTE ****** Assigne variable delimit
+def statementAssign():
     def process(parsed):
         ((name, _), exp) = parsed
         return AssignStatement(name, exp)
-    return id + keyword(':=') + aexp() ^ process
+    return id + keyword('RED') + expression() ^ process
 
-def if_stmt():
+# Assigns Strings to   
+def stringAssign():
     def process(parsed):
-        (((((_, condition), _), true_stmt), false_parsed), _) = parsed
-        if false_parsed:
-            (_, false_stmt) = false_parsed
+        ((name, _), strin) = parsed
+        return AssignString(name, strin)
+    return id + keyword('BLACK') + str ^ process
+    
+# If statement logic parser
+def statementIf():
+    def process(parsed):
+        (((((_, condition), _), statementTrue), parsedFalse), _) = parsed
+        if parsedFalse:
+            (_, statementFalse) = parsedFalse
         else:
-            false_stmt = None
-        return IfStatement(condition, true_stmt, false_stmt)
-    return keyword('if') + bexp() + \
-           keyword('then') + Lazy(stmt_list) + \
-           Opt(keyword('else') + Lazy(stmt_list)) + \
-           keyword('end') ^ process
+            statementFalse = None
+        return IfStatement(condition, statementTrue, statementFalse)
+            # if, then, else, end
+    return keyword('PURPLE') + boolExpressions() + \
+           keyword('GREEN') + Efficiency(statementList) + \
+           Optional(keyword('YELLOW') + Efficiency(statementList)) + \
+           keyword('TAN') ^ process
 
-def while_stmt():
+# While statement parse logic
+def statementWhile():
     def process(parsed):
         ((((_, condition), _), body), _) = parsed
         return WhileStatement(condition, body)
-    return keyword('while') + bexp() + \
-           keyword('do') + Lazy(stmt_list) + \
-           keyword('end') ^ process
+        # While, do, end
+    return keyword('VIOLET') + boolExpressions() + \
+           keyword('ORANGE') + Efficiency(statementList) + \
+           keyword('TAN') ^ process
+
+# ATTEMPTED FOR LOOP
+def statementFor():
+    def process(parsed):
+        (((((((name, _), exp), _), condition), _), body), _) = parsed
+        return ForLoop(name, exp, condition, body)
+        # for, name/expression, do, end
+    return id + keyword('RED') + expression() + \
+           keyword('PEAR') + boolExpressions() + \
+           keyword('ORANGE') + Efficiency(statementList) + \
+           keyword('TAN') ^ process
 
 # Boolean expressions
-def bexp():
-    return precedence(bexp_term(),
-                      bexp_precedence_levels,
-                      process_logic)
+def boolExpressions():
+    return precedence(boolExpressionTerm(),
+                      boolExpressionPrecedence,
+                      parseLogic)
 
-def bexp_term():
-    return bexp_not()   | \
-           bexp_relop() | \
-           bexp_group()
+# Boolean expression terms 
+def boolExpressionTerm():
+    return boolExpressionNot()   | \
+           boolExpressionOperate() | \
+           boolExpressionGroup()
 
-def bexp_not():
-    return keyword('not') + Lazy(bexp_term) ^ (lambda parsed: NotBexp(parsed[1]))
+# Not operator expression parser
+def boolExpressionNot():
+    return keyword('WHITE') + Efficiency(boolExpressionTerm) ^ (lambda parsed: NotBoolExpression(parsed[1]))
 
-def bexp_relop():
-    relops = ['<', '<=', '>', '>=', '=', '!=']
-    return aexp() + any_operator_in_list(relops) + aexp() ^ process_relop
+# Boolean expression operation parser
+def boolExpressionOperate():
+    operator = ['<', '<=', '>', '>=', '=', '!=']
+    return expression() + operatorList(operator) + expression() ^ parseOperator
 
-def bexp_group():
-    return keyword('(') + Lazy(bexp) + keyword(')') ^ process_group
+# Boolean expression group
+def boolExpressionGroup():
+    return keyword('(') + Efficiency(boolExpressions) + keyword(')') ^ parseGroup
 
-# Arithmetic expressions
-def aexp():
-    return precedence(aexp_term(),
-                      aexp_precedence_levels,
-                      process_binop)
+# In expressions
+def expression():
+    return precedence(expressionTerm(),
+                      expressionPrecedence,
+                      parseBinaryOperation)
 
-def aexp_term():
-    return aexp_value() | aexp_group()
+# Combine expressions and expression groupes 
+def expressionTerm():
+    return expressionValue() | expressionGroup()
 
-def aexp_group():
-    return keyword('(') + Lazy(aexp) + keyword(')') ^ process_group
-           
-def aexp_value():
-    return (num ^ (lambda i: IntAexp(i))) | \
-           (id  ^ (lambda v: VarAexp(v)))
+def expressionGroup():
+    return keyword('(') + Efficiency(expression) + keyword(')') ^ parseGroup
 
-# An IMP-specific combinator for binary operator expressions (aexp and bexp)
-def precedence(value_parser, precedence_levels, combine):
-    def op_parser(precedence_level):
-        return any_operator_in_list(precedence_level) ^ combine
-    parser = value_parser * op_parser(precedence_levels[0])
-    for precedence_level in precedence_levels[1:]:
-        parser = parser * op_parser(precedence_level)
+# Precedence parser subclass for binary operator expressions
+def precedence(valueParser, precedenceLevels, combine):
+    def parseOperations(precedenceLevel):
+        return operatorList(precedenceLevel) ^ combine
+    parser = valueParser * parseOperations(precedenceLevels[0])
+    for precedenceLevel in precedenceLevels[1:]:
+        parser = parser * parseOperations(precedenceLevel)
     return parser
 
-# Miscellaneous functions for binary and relational operators
-def process_binop(op):
-    return lambda l, r: BinopAexp(op, l, r)
+# Functions to parse binary and relational operators
+def parseBinaryOperation(operation):
+    return lambda l, r: BinopAexp(operation, l, r)
+    
+# 
+def parseOperator(parsed):
+    ((left, operation), right) = parsed
+    return RelopBexp(operation, left, right)
 
-def process_relop(parsed):
-    ((left, op), right) = parsed
-    return RelopBexp(op, left, right)
-
-def process_logic(op):
-    if op == 'and':
-        return lambda l, r: AndBexp(l, r)
-    elif op == 'or':
-        return lambda l, r: OrBexp(l, r)
+# and, or
+def parseLogic(operation):
+    if operation == 'APRICOT':
+        return lambda l, r: AndBoolExpression(l, r)
+    elif operation == 'FERN':
+        return lambda l, r: OrBoolExpression(l, r)
     else:
-        raise RuntimeError('unknown logic operator: ' + op)
+        raise RuntimeError('Unaccepted crayon logic operator: ' + operation)
 
-def process_group(parsed):
+# Parse a group of terms by removing parenthesies
+def parseGroup(parsed):
     ((_, p), _) = parsed
     return p
 
-def any_operator_in_list(ops):
-    op_parsers = [keyword(op) for op in ops]
-    parser = reduce(lambda l, r: l | r, op_parsers)
+def operatorList(operationList):
+    operatorParser = [keyword(operation) for operation in operationList]
+    parser = reduce(lambda l, r: l | r, operatorParser)
     return parser
-
+    
 # Operator keywords and precedence levels
-aexp_precedence_levels = [
+expressionPrecedence = [
     ['*', '/'],
     ['+', '-'],
 ]
 
-bexp_precedence_levels = [
-    ['and'],
-    ['or'],
+# Boolean operations precedence
+boolExpressionPrecedence = [
+    ['APRICOT'],
+    ['FERN'],
 ]
