@@ -1,46 +1,27 @@
+# Crayon-Toy-Language
+Final year university project to create a new programming language named Crayon
 
-     ,-----.,--.                  ,--. ,---.   ,--.,------.  ,------.
-    '  .--./|  | ,---. ,--.,--. ,-|  || o   \  |  ||  .-.  \ |  .---'
-    |  |    |  || .-. ||  ||  |' .-. |`..'  |  |  ||  |  \  :|  `--, 
-    '  '--'\|  |' '-' ''  ''  '\ `-' | .'  /   |  ||  '--'  /|  `---.
-     `-----'`--' `---'  `----'  `---'  `--'    `--'`-------' `------'
-    ----------------------------------------------------------------- 
+## Description
+Using python to create a toy interpeter, the crayon programming language borrows inspiration from regular languages but uses crayon colours instead of traditional terms for example RED instead of var and GREEN instead of if 
 
+## Features
 
-Welcome to your Python project on Cloud9 IDE!
+* Full lexer and Parser
+* Variables including Strings and Ints
+* Mathematical functions 
+* Print to return variable results
+* If statements and While loops
 
-To show what Cloud9 can do, we added a basic sample web application to this
-workspace, from the excellent Python tutorial _Learning Python the Hard Way_.
-We skipped ahead straight to example 50 which teaches how to build a web
-application.
+## Built With
 
-If you've never looked at the tutorial or are interested in learning Python,
-go check it out. It's a great hands-on way for learning all about programming
-in Python.
+* Python
+* Cloud9 IDE
 
-* _Learning Python The Hard Way_, online version and videos: 
-http://learnpythonthehardway.org/book/
+## License
+TBD
 
-* Full book: http://learnpythonthehardway.org
-
-## Starting from the Terminal
-
-To try the example application, type the following in the terminal:
-
-```
-cd ex50
-python bin/app.py
-```
-
-Alternatively, open the file in ex50/bin and click the green Run
-button!
-
-## Configuration
-
-You can configure your Python version and `PYTHONPATH` used in
-Cloud9 > Preferences > Project Settings > Language Support.
-
-## Support & Documentation
-
-Visit http://docs.c9.io for support, or to learn more about using Cloud9 IDE.
-To watch some training videos, visit http://www.youtube.com/user/c9ide.
+## Project Information
+- category: Python Program
+- author: Brendan Milton
+- description:  Crayon Interpreter Toy Language
+- stack: Python
