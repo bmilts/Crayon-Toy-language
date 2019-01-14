@@ -1,7 +1,5 @@
 # Crayon-Toy-Language
 
-<img src="/100352212_CrayonLanguageDesign.pdf"  width="325" /> 
-
 Final year university project to create a new programming language named Crayon
 
 ## Description
