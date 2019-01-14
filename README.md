@@ -1,5 +1,3 @@
-[embed]http://example.com/file.pdf[/embed]
-
 # Crayon-Toy-Language
 Final year university project to create a new programming language named Crayon
 
